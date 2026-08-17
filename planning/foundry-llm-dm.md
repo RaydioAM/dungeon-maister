@@ -38,7 +38,7 @@ forward — acting as a co-DM for solo play.
         │  In-session reads (no auth — same client)             │  Narrative text +
         │  Writes narrative to chat; resolves intents via dnd5e  │  structured intents
         ▼                                                       ▼
-   Foundry V13 client API                              Local quantized model (MLX/GGUF)
+   Foundry V14 client API                              Local quantized model (MLX/GGUF)
 ```
 
 The Mac does **not** call into the Foundry server over HTTP. `game.scenes`, `game.actors`, etc.
@@ -78,7 +78,7 @@ The real first-week risk is **CORS / mixed-content**, not latency.
 
 ### 1.1 Foundry Module Skeleton
 - Create a FoundryVTT **client** module (`module.json`) with a proper manifest, targeting the
-  Foundry V13 `compatibility` range.
+  Foundry V14 `compatibility` range.
 - Register a custom command / hotkey that triggers "DM Mode".
 - Read state **client-side** (in-session, no auth needed):
   - `game.scenes.current` / `canvas.tokens` — current scene, tokens, lighting
@@ -213,7 +213,7 @@ journal entries linked/tagged to the scene.
 
 | Component | Technology |
 |-----------|-----------|
-| Integration | In-Foundry **client** module, JavaScript (Foundry V13 API) |
+| Integration | In-Foundry **client** module, JavaScript (Foundry V14 API) |
 | Mechanics | **Reuse the `dnd5e` system API** (no custom engine) |
 | Local LLM Server | LM Studio (OpenAI-compatible API at `localhost:1234`, **CORS enabled**) |
 | LLM Model | Qwen3.6-35B-A3B (~3B active params, MoE — already running on this Mac) |
