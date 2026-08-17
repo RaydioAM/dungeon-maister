@@ -21,8 +21,8 @@ forward — acting as a co-DM for solo play.
 ┌──────────────┐         WebSocket / HTTP          ┌──────────────────┐
 │  FoundryVTT   │ ◄──────────────────────────────►  │  Local LLM (Mac)  │
 │  Server       │   (Foundry Module + API calls)    │                   │
-│  10.0.40.10   │                                   │  (Ollama /       │
-│               │                                   │   LM Studio)      │
+│  10.0.40.10   │                                   │  (LM Studio + Qwen 3.6 35B A3B       │
+│               │                                   │   (LM Studio + Qwen 3.6 35B A3B)      │
 └──────────────┘                                   └──────────────────┘
        │                                                  │
        │  Read-only: tokens, maps, journals,              │  Generates narrative
@@ -83,30 +83,43 @@ in a 60-ft cone") and the module translates that into Foundry actions + mechanic
 ## Phase 2: LLM Integration (Week 3-4)
 
 ### 2.1 Local LLM Setup (Mac)
-- **Recommended**: [Ollama](https://ollama.com) — lightweight, local, supports GGUF models.
-- **Model**: A 7B–13B parameter model fine-tuned for storytelling (e.g., `mistral`, `llama3-instruct`,
-  or a D&D-specific fine-tune).
-- Alternative: LM Studio for GUI-based local inference.
+- **Inference server**: [LM Studio](https://lmstudio.ai) — runs locally, exposes an OpenAI-compatible API at `http://localhost:1234/v1`.
+- **Model**: Qwen 3.6 35B A3B (already running on this Mac via LM Studio).
+  - Strong instruction-following, good for roleplay/narrative.
+  - 35B parameters with 3 active experts (MoE) — balances quality and speed.
 
 ### 2.2 Communication Protocol
-- Module sends state snapshots to the Mac via **local HTTP** (e.g., `localhost:8080/dm/snapshot`).
-- LLM runs a lightweight **FastAPI** or **Express** endpoint on the Mac.
-- Response returns structured JSON:
+- Foundry module sends state snapshots to LM Studio's **OpenAI-compatible API** at `http://localhost:1234/v1/chat/completions`.
+- LM Studio is already running with `qwen3.6-35b-a3b` — no additional server setup needed.
+- Request format (standard OpenAI API):
   ```json
   {
-    "narrative": "The tavern falls silent as Borin steps forward, his axe gleaming...",
-    "npc_dialogue": [
-      { "speaker": "Borin", "text": "I've faced worse than goblins, lass." }
+    "model": "qwen3.6-35b-a3b",
+    "messages": [
+      { "role": "system", "content": "You are a D&D 5e Dungeon Master focused on narrative..." },
+      { "role": "user", "content": "<state snapshot JSON>" }
     ],
-    "suggested_actions": ["search the barter counter", "ask about the missing merchant"],
-    "atmosphere": "tense, dimly lit"
+    "temperature": 0.8,
+    "max_tokens": 2048
   }
-```
+  ```
+- Response is parsed by the module to extract narrative text, NPC dialogue, and suggested actions.
+  LM Studio's response format:
+  ```json
+  {
+    "choices": [{ "message": { "content": "The tavern falls silent as Borin steps forward..." } }]
+  }
+  ```
+- The module parses the LLM's free-text response using structured prompts (JSON mode if supported,
+  or regex/substring extraction) to pull out narrative, dialogue, and suggested actions.
 
 ### 2.3 Prompt Engineering
 - System prompt defines the LLM's role: **narrative DM only, never mechanics**.
-- Include structured context from the snapshot.
-- Few-shot examples of good responses.
+  - Explicit instruction: "You describe scenes, NPC dialogue, and atmosphere. You NEVER roll dice,
+    calculate damage, or apply game rules. Leave all mechanics to the game module."
+- Include structured context from the snapshot (scene, actors, recent chat, journal).
+- Few-shot examples of good narrative responses.
+- Since Qwen 3.6 35B is already running on this Mac via LM Studio, no model loading or switching needed.
 
 ---
 
@@ -165,11 +178,11 @@ in a 60-ft cone") and the module translates that into Foundry actions + mechanic
 ### 5.2 Improvements
 - Optimize state snapshots (send only changed data).
 - Add caching for repeated responses.
-- Support multiple LLM backends (Ollama, LM Studio, local Python server).
+- Support multiple LLM backends (LM Studio, local Python server).
 
 ### 5.3 Documentation
 - Module install guide.
-- LLM setup guide (Ollama model recommendations).
+- LLM setup guide (LM Studio configuration, model selection).
 - Troubleshooting (network connectivity, API key setup).
 
 ---
@@ -179,10 +192,10 @@ in a 60-ft cone") and the module translates that into Foundry actions + mechanic
 | Component | Technology |
 |-----------|-----------|
 | Foundry Module | JavaScript (Foundry V12/V13 API) |
-| Local LLM Server | Ollama (preferred) or LM Studio |
-| LLM Models | Mistral 7B, Llama 3 8B, or D&D fine-tune (GGUF, quantized) |
-| Communication | HTTP REST (localhost) |
-| Game Rules | JavaScript (hardcoded D&D 5e) |
+| Local LLM Server | LM Studio (OpenAI-compatible API at `localhost:1234`) |
+| LLM Model | Qwen 3.6 35B A3B (already running on this Mac) |
+| Communication | HTTP REST → LM Studio `/v1/chat/completions` |
+| Game Rules | JavaScript (hardcoded D| Game Rules | JavaScript (hardcoded D&D 5e) |D 5e) |
 
 ## Risks & Mitigations
 
@@ -195,6 +208,6 @@ in a 60-ft cone") and the module translates that into Foundry actions + mechanic
 
 ## Next Steps (Immediate)
 1. [ ] Get Foundry API key from server settings at `10.0.40.10:30000`.
-2. [ ] Install Ollama on the Mac and pull a story-friendly model.
+2. [ ] Verify LM Studio is running with Qwen 3.6 35B A3B and note the API port (default 1234).
 3. [ ] Build the FoundryVTT module skeleton (`module.json` + basic read functions).
 4. [ ] Test reading a scene snapshot and sending it to a local LLM endpoint.
