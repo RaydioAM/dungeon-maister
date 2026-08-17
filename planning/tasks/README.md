@@ -68,5 +68,5 @@ relying on card 02+.
 | 07 | DM Assist toggle + `/dm-assist` command | 4 | 04 |
 | 08 | Polish: diff snapshots, caching, docs | 5 | all |
 
-Cards 02+ will be written after card 01 is validated in Goose, so the format can be
-adjusted first. Only card 01 exists initially.
+Cards 01–03 exist. Cards 04–08 will be written as earlier cards are validated, so the
+format and any newly-learned Foundry facts can feed forward.
