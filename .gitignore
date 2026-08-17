@@ -1,0 +1,47 @@
+# Secrets / credentials
+.env
+*.key
+*.pem
+secrets/
+
+# Logs
+*.log
+logs/
+journal/
+
+# Temporary / build artifacts
+tmp/
+temp/
+*.tmp
+*.swp
+*.swo
+*~
+
+# IDE / editor
+.vscode/
+.idea/
+*.sublime-*
+.DS_Store
+
+# Node / JS (if any tooling is used)
+node_modules/
+dist/
+build/
+
+# Terraform
+*.tfstate
+*.tfstate.backup
+.terraform/
+
+# Ansible
+ansible/inventory/hosts.local
+ansible/group_vars/*/vault_*
+
+# Proxmox / VM artifacts (if any raw configs are stored)
+*.qcow2
+*.img
+*.vmdk
+
+# Shell script temp files
+*.bak
+*.orig
