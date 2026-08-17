@@ -25,6 +25,15 @@ system — NOT by us.
 5. **Config** lives in `game.settings.register` (LM Studio URL, model id, temperature),
    NOT in `module.json`.
 
+## Known-correct Foundry facts (verified — use these directly)
+- `module.json` `compatibility.minimum`/`verified`/`maximum` are **strings** (`"14"`), not
+  integers.
+- To require the dnd5e **system**, declare it under `relationships.systems` as
+  `{ "id": "dnd5e", "type": "system" }`. A plain `requires: [{ "id": "dnd5e" }]` is WRONG —
+  without `type: "system"` Foundry looks for a *module* named dnd5e and the dependency fails.
+- `game.settings.register(namespace, key, { name, hint, scope, config, type, default })`
+  accepts primitive constructors `String`/`Number`/`Boolean` as `type` on V14 — fine to use.
+
 ## Hard constraints
 - Target Foundry **V14** (`compatibility` range in the manifest).
 - ES modules (`esmodules` in the manifest), modern JS. No build step / no bundler
@@ -33,13 +42,31 @@ system — NOT by us.
 - CORS/mixed-content is a known risk: the browser calls `http://localhost:1234`. Assume
   LM Studio has CORS enabled; do not work around it in code without a task saying so.
 
+## Looking things up on the internet
+You have web tools from the **searxng** extension:
+- `searxng_web_search` — search the web (required arg is exactly `query`). Use it to find
+  the right Foundry V14 / dnd5e doc or GitHub source when you don't know the URL.
+- `web_url_read` — fetch and read a specific page's text (e.g. a Foundry API doc page or a
+  raw GitHub file).
+
+Primary sources, in order of trust:
+- **Foundry V14 API docs**: https://foundryvtt.com/api/ (for `game.*`, `Actor#*`, hooks,
+  `module.json` fields).
+- **dnd5e system source**: its GitHub repo (raw files) for exact method names/signatures.
+- Prefer these official sources over forum/blog guesses.
+
+Fallback if the tools are unavailable: use the shell (`curl -sL <url>`) to fetch the same
+pages directly. Verifying by reading a doc is always cheaper than shipping a wrong API and
+debugging it later.
+
 ## Critical working rules
 - **Verify APIs before using them. Do NOT trust method or field names from memory or
   from these hints.** Foundry and dnd5e APIs change between versions. Before calling any
   `game.*`, `Actor#*`, `module.json` field, or dnd5e method, confirm it exists in the
-  installed version — check the official V14 API docs (https://foundryvtt.com/api/), the
-  installed dnd5e system source, or an existing installed module. If you cannot verify a
-  signature, leave a `// TODO: verify <thing>` comment rather than guessing.
+  installed version — use the searxng web tools to read the official V14 API docs
+  (https://foundryvtt.com/api/) or the dnd5e system source (see "Looking things up"
+  above), or check an existing installed module. If you cannot verify a signature, leave a
+  `// TODO: verify <thing>` comment rather than guessing.
 - Keep each change scoped to exactly what the task card asks. Do not refactor unrelated
   code or add features not in the card.
 - Match existing file layout and naming. Put module source under `src/` unless the card
