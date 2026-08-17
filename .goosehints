@@ -1,0 +1,85 @@
+# Project: FoundryVTT + Local LLM Co-DM ("dungeon-maister")
+
+You are working on a FoundryVTT **client module** that turns a local LLM into a
+narrative co-DM for solo D&D 5e play. Read this file fully before doing any task.
+
+## What we are building
+A Foundry V14 client module that runs inside the GM's browser session, reads game
+state directly, sends a compact snapshot to a local LLM (LM Studio, OpenAI-compatible
+API at http://localhost:1234/v1), and posts the generated narrative back to Foundry
+chat. Mechanics (dice, HP, conditions) are resolved by Foundry's existing `dnd5e`
+system — NOT by us.
+
+## Locked architectural decisions (do NOT deviate)
+1. **In-Foundry client module.** All code runs client-side inside a logged-in GM
+   session. Read state via the global `game.*` API (`game.scenes.current`,
+   `game.actors`, `game.messages`, `game.journal`, `canvas.tokens`). There is NO
+   external Foundry REST API and NO Foundry "API key" — do not invent one.
+2. **Reuse the `dnd5e` system for ALL mechanics.** Never hand-roll a rules engine.
+   Use the dnd5e system's own methods (e.g. `Actor#rollAttack`, `rollSavingThrow`,
+   `rollSkill`, active effects) for any dice, damage, HP, or condition changes.
+3. **LLM does narrative only.** It never rolls dice or applies rules. When it needs a
+   mechanical action it emits a **structured JSON intent**; our code validates it and
+   routes it to the dnd5e system. Mechanical actions are GM-confirmed, never blind writes.
+4. **LLM output is structured** via tool-calling / JSON-schema, never regex-parsed prose.
+5. **Config** lives in `game.settings.register` (LM Studio URL, model id, temperature),
+   NOT in `module.json`.
+
+## Known-correct Foundry facts (verified — use these directly)
+- `module.json` `compatibility.minimum`/`verified`/`maximum` are **strings** (`"14"`), not
+  integers.
+- To require the dnd5e **system**, declare it under `relationships.systems` as
+  `{ "id": "dnd5e", "type": "system" }`. A plain `requires: [{ "id": "dnd5e" }]` is WRONG —
+  without `type: "system"` Foundry looks for a *module* named dnd5e and the dependency fails.
+- `game.settings.register(namespace, key, { name, hint, scope, config, type, default })`
+  accepts primitive constructors `String`/`Number`/`Boolean` as `type` on V14 — fine to use.
+
+## Hard constraints
+- Target Foundry **V14** (`compatibility` range in the manifest).
+- ES modules (`esmodules` in the manifest), modern JS. No build step / no bundler
+  unless a task explicitly says so — keep it plain JS that Foundry loads directly.
+- The module depends on the `dnd5e` system (declare it in the manifest `relationships`).
+- CORS/mixed-content is a known risk: the browser calls `http://localhost:1234`. Assume
+  LM Studio has CORS enabled; do not work around it in code without a task saying so.
+
+## Looking things up on the internet
+You have web tools from the **searxng** extension:
+- `searxng_web_search` — search the web (required arg is exactly `query`). Use it to find
+  the right Foundry V14 / dnd5e doc or GitHub source when you don't know the URL.
+- `web_url_read` — fetch and read a specific page's text (e.g. a Foundry API doc page or a
+  raw GitHub file).
+
+Primary sources, in order of trust:
+- **Foundry V14 API docs**: https://foundryvtt.com/api/ (for `game.*`, `Actor#*`, hooks,
+  `module.json` fields).
+- **dnd5e system source**: its GitHub repo (raw files) for exact method names/signatures.
+- Prefer these official sources over forum/blog guesses.
+
+Fallback if the tools are unavailable: use the shell (`curl -sL <url>`) to fetch the same
+pages directly. Verifying by reading a doc is always cheaper than shipping a wrong API and
+debugging it later.
+
+## Critical working rules
+- **Verify APIs before using them. Do NOT trust method or field names from memory or
+  from these hints.** Foundry and dnd5e APIs change between versions. Before calling any
+  `game.*`, `Actor#*`, `module.json` field, or dnd5e method, confirm it exists in the
+  installed version — use the searxng web tools to read the official V14 API docs
+  (https://foundryvtt.com/api/) or the dnd5e system source (see "Looking things up"
+  above), or check an existing installed module. If you cannot verify a signature, leave a
+  `// TODO: verify <thing>` comment rather than guessing.
+- Keep each change scoped to exactly what the task card asks. Do not refactor unrelated
+  code or add features not in the card.
+- Match existing file layout and naming. Put module source under `src/` unless the card
+  says otherwise; the manifest stays at repo root or `dist/` per the card.
+- After a task, state plainly what you did, which files changed, and anything you could
+  NOT verify (so it can be escalated).
+
+## Where things live
+- `planning/foundry-llm-dm.md` — the full project plan. Read for background, not per-task.
+- `planning/tasks/` — self-contained task cards. Work ONE card at a time. `README.md`
+  there explains the card format and the recommended order.
+
+## Definition of done for any card
+Code runs without console errors when the module loads in Foundry; the card's explicit
+acceptance criteria are met; unverifiable APIs are flagged with TODOs; no unrelated
+changes.
